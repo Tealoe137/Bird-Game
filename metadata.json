@@ -1,0 +1,5 @@
+{
+  "name": "Avian IQ: Infinite Bird Guessing Game",
+  "description": "A high-quality educational game where you identify bird species from a rich collection of images. Features smart distraction generation based on similar traits and families.",
+  "requestFramePermissions": []
+}
