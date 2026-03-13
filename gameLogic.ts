@@ -17,20 +17,26 @@ export function shuffle<T>(array: T[]): T[] {
 /**
  * Generates a new question with smart distractors.
  */
-export function generateQuestion(): Question {
-  // 1. Pick a random bird
-  const correctBird = BIRD_LIST[Math.floor(Math.random() * BIRD_LIST.length)];
+export function generateQuestion(allowedBirds: Bird[] = BIRD_LIST): Question {
+  // 1. Pick a random bird from the allowed list
+  const correctBird = allowedBirds[Math.floor(Math.random() * allowedBirds.length)];
   
   // 2. Pick a random image from that bird
   const imageUrl = correctBird.images[Math.floor(Math.random() * correctBird.images.length)];
 
-  // 3. Find birds in the same group
-  let potentialDistractors = BIRD_LIST.filter(b => b.id !== correctBird.id && b.group === correctBird.group);
+  // 3. Find birds in the same group from the allowed list
+  let potentialDistractors = allowedBirds.filter(b => b.id !== correctBird.id && b.group === correctBird.group);
 
-  // If we don't have enough similar birds, backfill with random birds
+  // If we don't have enough similar birds, backfill with random birds from the allowed list
   if (potentialDistractors.length < 3) {
-    const others = shuffle(BIRD_LIST.filter(b => b.id !== correctBird.id && b.group !== correctBird.group));
+    const others = shuffle(allowedBirds.filter(b => b.id !== correctBird.id && b.group !== correctBird.group));
     potentialDistractors = [...potentialDistractors, ...others];
+  }
+
+  // If we STILL don't have enough (e.g., user selected < 4 birds), backfill from the full list
+  if (potentialDistractors.length < 3) {
+    const fullListOthers = shuffle(BIRD_LIST.filter(b => b.id !== correctBird.id && !allowedBirds.find(a => a.id === b.id)));
+    potentialDistractors = [...potentialDistractors, ...fullListOthers];
   }
 
   // 4. Select 3 distractors

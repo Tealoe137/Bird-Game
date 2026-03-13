@@ -2,6 +2,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { GameStatus, Question, Score, Bird } from './types';
 import { generateQuestion } from './gameLogic';
+import { BIRD_LIST } from './birdData';
 import { ChevronRight, Trophy, RotateCcw, Bird as BirdIcon, CheckCircle, XCircle } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -10,14 +11,38 @@ const App: React.FC = () => {
   const [selectedBirdId, setSelectedBirdId] = useState<string | null>(null);
   const [score, setScore] = useState<Score>({ correct: 0, total: 0 });
   const [isAnswered, setIsAnswered] = useState(false);
+  const [selectedBirdIds, setSelectedBirdIds] = useState<Set<string>>(new Set(BIRD_LIST.map(b => b.id)));
+
+  const toggleBirdSelection = (id: string) => {
+    setSelectedBirdIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectAllBirds = () => {
+    setSelectedBirdIds(new Set(BIRD_LIST.map(b => b.id)));
+  };
+
+  const deselectAllBirds = () => {
+    setSelectedBirdIds(new Set());
+  };
 
   // Load a new question
   const loadNewQuestion = useCallback(() => {
-    setCurrentQuestion(generateQuestion());
+    const allowedBirds = BIRD_LIST.filter(b => selectedBirdIds.has(b.id));
+    if (allowedBirds.length < 4) return;
+    
+    setCurrentQuestion(generateQuestion(allowedBirds));
     setSelectedBirdId(null);
     setIsAnswered(false);
     setStatus(GameStatus.PLAYING);
-  }, []);
+  }, [selectedBirdIds]);
 
   const handleStartGame = () => {
     setScore({ correct: 0, total: 0 });
@@ -53,20 +78,45 @@ const App: React.FC = () => {
         <BirdIcon className="absolute -top-10 -left-10 w-64 h-64 text-emerald-800 opacity-20 rotate-12" />
         <BirdIcon className="absolute -bottom-10 -right-10 w-64 h-64 text-emerald-800 opacity-20 -rotate-12" />
 
-        <div className="z-10 text-center max-w-lg">
+        <div className="z-10 text-center max-w-4xl w-full flex flex-col items-center">
           <div className="inline-block p-4 bg-emerald-800 rounded-full mb-6 shadow-xl border-4 border-emerald-700">
             <BirdIcon className="w-16 h-16 text-yellow-400" />
           </div>
           <h1 className="text-5xl font-black mb-4 tracking-tight drop-shadow-lg">Avian IQ</h1>
-          <p className="text-emerald-100 text-lg mb-10 font-medium">
-            Identify 94 unique bird species from California and beyond.
-            Infinite levels, smart challenges, and stunning photography.
+          <p className="text-emerald-100 text-lg mb-8 font-medium max-w-lg">
+            Identify unique bird species from California and beyond.
+            Select the birds you want to practice below.
           </p>
+
+          <div className="bg-emerald-800/50 p-6 rounded-2xl w-full max-w-3xl mb-8 backdrop-blur-sm border border-emerald-700/50">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">Select Birds ({selectedBirdIds.size}/{BIRD_LIST.length})</h2>
+              <div className="space-x-2">
+                <button onClick={selectAllBirds} className="px-3 py-1 bg-emerald-700 hover:bg-emerald-600 rounded text-sm font-medium transition-colors">Select All</button>
+                <button onClick={deselectAllBirds} className="px-3 py-1 bg-emerald-700 hover:bg-emerald-600 rounded text-sm font-medium transition-colors">Deselect All</button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar text-left">
+              {BIRD_LIST.map(bird => (
+                <label key={bird.id} className="flex items-center space-x-3 p-2 rounded hover:bg-emerald-700/50 cursor-pointer transition-colors">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedBirdIds.has(bird.id)}
+                    onChange={() => toggleBirdSelection(bird.id)}
+                    className="w-4 h-4 text-emerald-500 rounded focus:ring-emerald-500 bg-emerald-900 border-emerald-600"
+                  />
+                  <span className="text-sm truncate" title={bird.name}>{bird.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <button
             onClick={handleStartGame}
-            className="group relative inline-flex items-center justify-center px-10 py-5 font-bold text-white transition-all duration-200 bg-emerald-600 font-pj rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 hover:bg-emerald-500 shadow-2xl"
+            disabled={selectedBirdIds.size < 4}
+            className="group relative inline-flex items-center justify-center px-10 py-5 font-bold text-white transition-all duration-200 bg-emerald-600 font-pj rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 hover:bg-emerald-500 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Start Guessing
+            {selectedBirdIds.size < 4 ? 'Select at least 4 birds' : 'Start Guessing'}
             <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
@@ -195,6 +245,20 @@ const App: React.FC = () => {
         }
         .animate-shake {
           animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(4, 120, 87, 0.2);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(4, 120, 87, 0.5);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(4, 120, 87, 0.8);
         }
       `}</style>
     </div>
